@@ -1,0 +1,66 @@
+% xlsread('SMNI_CMI_TRAIN/Data1.csv');
+M = readtable('Data1.csv');
+%[~,~,data1] = xlsread('SMNI_CMI_TRAIN/Data1.csv');
+
+t = 0:1:(height(M)-1);
+
+structarray = table2struct(M);
+
+%Initialization
+sample = [(0:1:255) ; zeros(1,256)]';
+for n=1:length(structarray)
+    
+    for j=1:256
+        if structarray(n).sampleNum == (j-1)
+            sample(j,2) = sample(j,2) + structarray(n).sensorValue;
+        end
+    end
+end      
+%plot(extractfield(structarray,'time'),extractfield(structarray, 'sensorValue'));
+plot(sample(:,1),sample(:,2));
+figure;
+%end
+
+
+%Plot Raw Channels 
+for n=1:256
+    plot(B,'DisplayName','B')
+    title ('initial raw data of Channel');
+    xlabel ('Time');
+ylabel ('Sensor Value');
+figure;
+end
+
+
+%%Filtering steps
+%LPF, fc = 15Hz
+%HPF, fc= 30Hz 
+%Normalizing and Summing 
+
+[bdev]=[1 -1];
+[adev]=[1 -0.995];
+figure;
+freqz(bdev,adev,M,fs);
+title('Derivative-Based Filter');
+ 
+%Derivative Based Filtered ECG
+eegdev=filter (bdev,adev,structarray);
+figure;
+plot(eegdev);
+
+
+%for-loop-filter through each channel
+
+for n=[1:16];
+    fit_EEG=filtfilt(a,b,B(:,n));
+    b(n,:)=lowpass(fit_EEG,b,B(:,n)), 16, sample(j,2); %LPF
+    eegdev=filter(bdev,adev,n,sample); %derivative
+    norm(n,:)=normalize(a,b,B(:,n)); %normalize
+    EEGSummation =EEGSummation +norm(n,:); % Summation EEG
+end
+plot (t,EEGSummation);
+title('Filtered and Summed Channels of EEG');
+xlabel('Time')
+ylabel ('Amp');
+hold on;
+figure;
